@@ -1,0 +1,27 @@
+name: first
+
+on: push
+
+
+jobs:
+	job1:
+		name:First Job
+		runs-on:macOS-latest
+		steps:
+		-name:Step one
+		uses:action/checkcout@v2
+		-name:Step two
+		run:env |sort
+		
+	job2:
+		name:Second Job
+		runs-on:macOs-latest
+		steps:
+                -name:Step one
+		 uses:action/checkcout@v2
+                -name:Step two
+		run:"Get-ChildItem Env:| Sort-Object Name"
+
+
+$ git add first .yml
+

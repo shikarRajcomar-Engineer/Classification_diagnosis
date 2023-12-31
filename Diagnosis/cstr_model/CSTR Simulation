@@ -1,0 +1,157 @@
+from tools import PID
+from scipy.integrate import solve_ivp
+import numpy as np
+import matplotlib.pyplot as plt
+from pathlib import Path
+import pandas as pd
+# Reactor constants
+V = 150  # L
+V_c =10 #    L
+UA = 7E5#      cal/min/K
+Q=100# L/min
+
+# Reaction constants
+E_a  = 83140#   J/mol 
+R  = 8.314 #    J/K/mol 
+H_r  =-2E5 #       cal/mol 
+k_0  =7.2E10 #      1/min 
+
+# Fluid constants
+C_p = 1 # cal/g/k
+C_pc  =1 #   cal/g/k 
+rho = 1000 # g/L
+rho_c = 1000 #g/l
+
+path = Path('docs/img/')
+
+pid=PID(K_p=-1,tau_i=-0.5,setpoint=430,u_bias=150,limits=(20,200), sample_dt=0.01)
+
+C_i, T_i, T_ci = [0.97, 351.5, 351.6]
+y0 = [1, 440, 410]
+res = solve_ivp(cstr_model,(0,20),y0, method='RK45',max_step=0.01)
+
+# Define the input parameters and PID controller
+t_span = (0, 1200) # Start and end time
+pid=PID(K_p=-1,tau_i=-0.5,setpoint=430,u_bias=150,limits=(20,200), sample_dt=0.01)
+change_dt = 60 # How often inputs change
+T_max = 1200 # time when there is a 10% reduction in catalyst and jacket 
+
+
+# Define perturbed inputs (change every change_dt minutes)
+size = int(t_span[1]/60)+1
+C_i_list = np.random.uniform(size=size,low=0.9, high=1.0)
+T_i_list = np.random.uniform(size=size,low=348, high=352)
+T_ci_list = np.random.uniform(size=size,low=348, high=352)
+
+# Solve equations
+t_eval = np.linspace(t_span[0],t_span[1],num=int((t_span[1])*100))
+y0 = [0.11, 440, 410]
+res = solve_ivp(cstr_model_real,t_span,y0, method='RK45',max_step=0.01,t_eval=t_eval)
+
+plot_results(res.t, res.y, pid)
+plt.savefig(path/"dataset_substandard.png", dpi=100)
+# Plot results
+plot_results(res.t, res.y, pid)
+plt.savefig(path/'baseline_model_results.png',dpi=100)
+
+def perturb_inputs(t):
+    """
+    Function to change inlet conditions
+    """
+    
+    variant = int(t/change_dt)
+    
+    return C_i_list[variant], T_i_list[variant], T_ci_list[variant] 
+        
+def cstr_model_real(t,y):
+    """
+    CSTR model that emulates real data
+    """
+    
+    # Unpack variables
+    C, T, T_c = y
+    
+    # Inlet conditions are sampled from a uniform distribution
+    C_i, T_i, T_ci = perturb_inputs(t)
+    
+    # Catalyst degradation and jacket fouling
+    alpha = 1-0.1*t/T_max
+    beta = 1-0.1*t/T_max
+    beta=1
+
+    # Flowrate is adjusted automatically by PID controller
+    Q_c=pid(T,t)
+
+    # Reaction rate is determined by Arrhenius equation
+    k = k_0*np.exp(-E_a/(R*T))
+    
+    # Noise in differential equations
+    G_C = np.random.normal(scale=0.01)
+    G_T = np.random.normal(scale=0.1)
+    
+    # Differential equations
+    dC_dt = (Q/V)*(C_i-C) - alpha*k*C + G_C
+    dT_dt = (Q/V)*(T_i-T) - H_r*k*C/(rho*C_p) - beta*UA*(T-T_c)/(rho*C_p*V)+ G_T
+    dTc_dt = (Q_c/V_c)*(T_ci - T_c) + UA * (T-T_c)/(rho_c*C_pc*V_c) + G_T
+    
+    return dC_dt, dT_dt, dTc_dt
+        
+def cstr_model(t,y):
+    
+    C, T, T_c = y
+
+    k = k_0*np.exp(-E_a/(R*T))
+    
+    Q_c=pid(T,t)
+    
+    dC_dt = (Q/V)*(C_i-C) - k*C
+    dT_dt = (Q/V)*(T_i-T) - H_r*k*C/(rho*C_p) - UA*(T-T_c)/(rho*C_p*V)
+    dTc_dt = (Q_c/V_c)*(T_ci - T_c) + UA * (T-T_c)/(rho_c*C_pc*V_c)
+    
+    return dC_dt, dT_dt, dTc_dt
+
+
+def plot_results(t, sol, pid):
+    C = sol[0]
+    T = sol[1]
+    T_c = sol[2]
+
+    plt.subplots(2,2,figsize=(10,10))
+    
+    it = 1
+    for item,title,ylabel in zip([C, T, T_c],['Reactant','Reactor Temperature','Cooling Jacket Temperature'],['C [mol/L]','T [K]','$T_c$ [K]']):
+        plt.subplot(2,2,it)
+        plt.plot(t,item)
+        plt.ylabel(ylabel)
+        plt.xlabel('t [min]')
+        plt.title(title)
+        plt.grid()
+        it+=1
+        
+    plt.subplot(2,2,4)
+    pid.plot_results()
+    plt.ylim([0,210])
+    plt.grid()
+    plt.ylabel('$Q_c [L/min]$')
+    plt.xlabel('t [min]')
+    plt.title('Cooling Water Flow rate')
+    
+    print("Results at final time step are: ", [round(item,2) for item in sol[:,-1]]+[pid.store[-1][1]])
+
+    import pandas as pd
+
+store = []
+for ini_cond in [[0.97, 351.5, 351.6],[0.97, 352.1, 349.8],[0.97, 351.2, 348.3],[0.93, 348.3, 349.8]]:
+
+
+    pid=PID(K_p=-1,tau_i=-0.5,setpoint=430,u_bias=150,limits=(20,200), sample_dt=0.01)
+
+    C_i, T_i, T_ci = ini_cond
+    y0 = [1, 440, 410]
+    res = solve_ivp(cstr_model,(0,20),y0, method='RK45',max_step=0.01)
+    
+    sol = [round(item,2) for item in res.y[:,-1]] + [round(pid.store[-1][-1],2)]
+    store.append(sol)
+    
+store = pd.DataFrame(store,columns = ['C','T','$T_c$','$Q_c$'],index=['0 mins','60 mins', '120 mins', '180 mins'])
+print(store)

@@ -1,0 +1,28 @@
+for i = 1:50
+    periodci = randi([100 600], 1);
+    pulseci = randi([5 15], 1);
+    periodti = randi([100 600], 1);
+    pulseti = randi([5 15], 1);
+
+    sim('cstr_feedback_anomaly_demo.slx')
+
+    % Create a column indicating fault status
+    fault_status = zeros(size(simout.time));
+    
+    % Find the index corresponding to the start of the first faulty
+    fault_start_index = find(simout.time >= 200, 1);
+    
+    % Check if the fault should be injected during the simulation time
+    while ~isempty(fault_start_index) && (fault_start_index <= numel(simout.time))
+        fault_status(fault_start_index : min(fault_start_index + (periodti*pulseti), numel(simout.time))) = 1;
+        fault_start_index = find(simout.time >= (fault_start_index + periodti), 1);
+    end
+
+    % Create a table with time, system response, fault status, pulseci, and periodci
+    T = table(simout.time, simout.signals.values, fault_status, pulseti * ones(size(simout.time)), periodti * ones(size(simout.time)), ...
+        'VariableNames', {'Time', 'SystemResponse', 'FaultStatus', 'PulseCi', 'PeriodCi'});
+
+    % Save the table to an Excel file
+    filename = sprintf('ti_Fault_15_%d.xls', i);
+    writetable(T, filename);
+end

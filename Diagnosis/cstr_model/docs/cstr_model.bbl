@@ -1,0 +1,17 @@
+\begin{thebibliography}{1}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Pilario and Cao(2018)]{pilario2018canonical}
+Karl Ezra~Salgado Pilario and Yi~Cao.
+\newblock Canonical variate dissimilarity analysis for process incipient fault
+  detection.
+\newblock \emph{IEEE Transactions on Industrial Informatics}, 14\penalty0
+  (12):\penalty0 5308--5315, 2018.
+\newblock URL
+  \url{https://dspace.lib.cranfield.ac.uk/bitstream/handle/1826/13055/Canonical_variate_dissimilarity_analysis-2018.pdf?sequence=4}.
+
+\end{thebibliography}

@@ -20,7 +20,10 @@ import matplotlib.pyplot as plt
 from sklearn.svm import SVC
 from sklearn.preprocessing import label_binarize
 from itertools import cycle
-
+import tensorflow as tf 
+from tensorflow import keras
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
 
 
 # Prepare the dataset
@@ -39,14 +42,6 @@ from itertools import cycle
 #     masterfile=masterfile.iloc[:,2:]
 #     return masterfile
 
-
-# Create models
-random_forest = RandomForestClassifier(n_estimators=100, random_state=42)
-logistic_regression = LogisticRegression(random_state=42, max_iter=1000)
-decision_tree = DecisionTreeClassifier(random_state=42)
-
-# Create a list of models
-models = [random_forest, logistic_regression, decision_tree]
 labels=['Actual 0', 'Actual 1', 'Actual 2']
 
 def model_testing(file_name,model):
@@ -57,6 +52,9 @@ def model_testing(file_name,model):
 
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+
+
     model.fit(X_train,y_train)
     y_pred = model.predict(X_test)
     accuracy = accuracy_score(y_test, y_pred)
@@ -65,15 +63,34 @@ def model_testing(file_name,model):
     f1 = f1_score(y_test, y_pred, average='weighted')
     conf_matrix = confusion_matrix(y_test, y_pred)
 
+
     return accuracy, precision, recall, f1, conf_matrix
+
+
+# Create models
+random_forest = RandomForestClassifier(n_estimators=100, random_state=42)
+logistic_regression = LogisticRegression(random_state=42, max_iter=1000)
+decision_tree = DecisionTreeClassifier(random_state=42)
+
+neural_network = Sequential([
+    Dense(128, input_shape=([7,]), activation='relu'),
+    Dense(64, activation='relu'),
+    Dense(1, activation='sigmoid')
+])
+neural_network.compile(optimizer='adam', loss=tf.keras.losses.MeanAbsoluteError(), metrics=['accuracy'])
+# Create a list of models
+models = [neural_network]
 
 
 Eval_metrics=pd.DataFrame()
 confusion_mat=pd.DataFrame()
+
+
+
 # Test each model
 for model in models:
     model_name = type(model).__name__
-    print(model)
+
     accuracy, precision, recall, f1, conf_matrix = model_testing('master.xlsx', model)
     data={'Accuracy':[accuracy],
         'Precision':[precision],

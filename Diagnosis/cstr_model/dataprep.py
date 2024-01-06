@@ -7,7 +7,7 @@ import numpy as np
 
 # Specify the folder path and the Excel file name pattern
 folder_path = os.getcwd()+'/Data'
-file_name_pattern = 'Ci_Fault_'
+file_name_pattern = 'ti_Fault_'
 
 for filename in os.listdir(folder_path):
     if filename.startswith(file_name_pattern):
@@ -48,6 +48,6 @@ for filename in files:
  
 masterfile=masterfile[['tag','SystemResponse_ 4','SystemResponse_ 5','SystemResponse_ 6','SystemResponse_ 7','SystemResponse_ 8','SystemResponse_ 9','SystemResponse_10','new_column']]
 masterfile=masterfile.rename(columns={'SystemResponse_ 4':'Ci','SystemResponse_ 5':'Ti','SystemResponse_ 6':'Tci','SystemResponse_ 7':'Tsp','SystemResponse_ 8':'Qc','SystemResponse_ 9':'Tc','SystemResponse_10':'T','new_column':'Flag'})
-master=masterfile.to_excel('final1.xlsx')
+master=masterfile.to_excel('testdata1.xlsx')
 
 

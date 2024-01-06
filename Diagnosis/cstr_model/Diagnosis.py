@@ -26,23 +26,39 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 
 
-# Prepare the dataset
-
-
-# def Data_prep(pattern):
-#     path=os.getcwd()
-#     # pattern='final'
-
-#     masterfile=pd.DataFrame()
-#     files=[f for f in os.listdir(path) if os.path.isfile(os.path.join(path,f))]
-#     for filename in files:
-#         if filename.startswith(pattern):
-#             df=pd.read_excel(filename)
-#             masterfile=masterfile.append(df)
-#     masterfile=masterfile.iloc[:,2:]
-#     return masterfile
 
 labels=['Actual 0', 'Actual 1', 'Actual 2']
+
+
+def plot_training_history(history):
+    # Plot training history
+    plt.figure(figsize=(12, 4))
+
+    # Plot training & validation accuracy values
+    plt.subplot(1, 2, 1)
+    plt.plot(history.history['accuracy'])
+    plt.plot(history.history['val_accuracy'])
+    plt.title('Model Accuracy')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.legend(['Train', 'Validation'], loc='upper left')
+
+    # Plot training & validation loss values
+    plt.subplot(1, 2, 2)
+    plt.plot(history.history['loss'])
+    plt.plot(history.history['val_loss'])
+    plt.title('Model Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend(['Train', 'Validation'], loc='upper left')
+
+    plt.tight_layout()
+    plt.show()
+
+
+
+
+
 
 def model_testing(file_name,model):
 
@@ -55,7 +71,8 @@ def model_testing(file_name,model):
 
 
 
-    model.fit(X_train,y_train)
+    history = model.fit(X_train, y_train, epochs=10, batch_size=32, validation_split=0.4)
+    plot_training_history(history)
     y_pred = model.predict(X_test)
     accuracy = accuracy_score(y_test, y_pred)
     precision = precision_score(y_test, y_pred, average='weighted')
@@ -74,10 +91,19 @@ decision_tree = DecisionTreeClassifier(random_state=42)
 
 neural_network = Sequential([
     Dense(128, input_shape=([7,]), activation='relu'),
-    Dense(64, activation='relu'),
-    Dense(1, activation='sigmoid')
+    Dense(32, activation='relu'),
+    Dense(16, activation='relu'),
+    Dense(1, activation='relu')
 ])
-neural_network.compile(optimizer='adam', loss=tf.keras.losses.MeanAbsoluteError(), metrics=['accuracy'])
+
+
+
+neural_network.compile(optimizer=tf.keras.optimizers.SGD(lr=0.0001), loss=tf.keras.losses.MSE, metrics=[tf.keras.metrics.mean_squared_error,'accuracy'])
+
+
+
+
+
 # Create a list of models
 models = [neural_network]
 

@@ -76,7 +76,6 @@ Overall_MSE = keras.losses.mean_squared_logarithmic_error(original, predictions)
 Overall_MSE=pd.DataFrame(Overall_MSE,columns=['Overall Error'])
 ypred=pd.DataFrame(Predicted_original)
 
-
 df1=pd.DataFrame(original)
 df2=pd.DataFrame(Predicted_original)
 

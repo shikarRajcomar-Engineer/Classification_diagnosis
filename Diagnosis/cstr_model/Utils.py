@@ -288,7 +288,7 @@ def detect_outliers_Mahalanobis(data):
     dist = mahalanobis(x=data.values, data=data)
 
     # Calculate percentile threshold
-    threshold_percentile = np.percentile(dist, 85)  # Example: using 95th percentile
+    threshold_percentile = np.percentile(dist, 90)  # Example: using 95th percentile
 
     # Identify outliers based on the threshold
     outliers = dist > threshold_percentile

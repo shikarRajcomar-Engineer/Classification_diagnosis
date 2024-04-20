@@ -1,4 +1,3 @@
-
 import numpy as np
 from numpy import ma
 import pandas as pd
@@ -34,13 +33,16 @@ from sklearn.metrics import (confusion_matrix, precision_recall_curve, auc,
                              precision_recall_fscore_support)
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score
 from sklearn.metrics import mean_squared_error
+import Utils
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_squared_error
 
+from sklearn.metrics import mean_squared_error
 # Hide Warnings
 import os
+import warnings
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'   #To enable them in non-MKL-DNN operations, rebuild TensorFlow with the appropriate compiler flags.
-
-
-
+warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 
 
 
@@ -49,77 +51,18 @@ x = df[df.columns[2:9]].to_numpy()
 scaler = preprocessing.StandardScaler()
 scaled_data = scaler.fit_transform(x)
 train_data, test_data = train_test_split(scaled_data, test_size=0.3)
-n_features = train_data.shape[1]  
-
-
-for i in range(n_features):
-    encoder = keras.Sequential(name='encoder')
-    encoder.add(keras.layers.Dense(units=64, activation=keras.activations.relu, input_shape=[n_features]))
-    encoder.add(keras.layers.BatchNormalization())
-    encoder.add(keras.layers.Dropout(0.2))
-    encoder.add(keras.layers.Dense(units=32, activation=keras.activations.relu))
-    encoder.add(keras.layers.BatchNormalization())
-    encoder.add(keras.layers.Dropout(0.2))
-    encoder.add(keras.layers.Dense(units=16, activation=keras.activations.relu))
-    encoder.add(keras.layers.BatchNormalization())
-    encoder.add(keras.layers.Dropout(0.2))
-
-    decoder = keras.Sequential(name='decoder')
-    decoder.add(keras.layers.Dense(units=32, activation=keras.activations.relu, input_shape=[16]))
-    decoder.add(keras.layers.BatchNormalization())
-    decoder.add(keras.layers.Dropout(0.2))
-    decoder.add(keras.layers.Dense(units=64, activation=keras.activations.relu))
-    decoder.add(keras.layers.BatchNormalization())
-    decoder.add(keras.layers.Dropout(0.2))
-    decoder.add(keras.layers.Dense(units=n_features, activation=keras.activations.sigmoid))
-    decoder.add(keras.layers.BatchNormalization())
-
-    autoencoder = keras.Sequential([encoder, decoder])
-
-    loss = keras.losses.Huber()
-    learning_rate = 0.001
-    optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
-    es = EarlyStopping(monitor='val_loss', min_delta=0.00001, patience=20, restore_best_weights=True)
-
-    autoencoder.compile(
-        loss=loss,
-        optimizer=optimizer,
-        metrics=[keras.metrics.MeanSquaredError()])
-
-
-    history = autoencoder.fit(
-        x=train_data, y=train_data,
-        batch_size=32,
-        epochs=50,
-        verbose=0,
-        validation_data=(test_data, test_data),
-        callbacks=[es])
-
-    # Plot the learning curves
-    plt.plot(history.history['loss'])
-    plt.plot(history.history['val_loss'])
-    plt.title('Model Loss')
-    plt.ylabel('Loss')
-    plt.xlabel('Epoch')
-    plt.legend(['Train', 'Test'], loc='upper left')
-    plt.show()
-
-
-best_model = keras.models.clone_model(autoencoder)
-best_model.set_weights(autoencoder.get_weights())
-best_model.save(f'AE_feature{i}.h5')
-
-# autoencoder=load_model('best_model2.h5')
+n_features = train_data.shape[1]
+# Utils.Model_development(n_features,train_data, test_data)
+autoencoder=load_model('best_model2.h5')
 
 
 
-# Im importing a test file and scaling it then passing the scaled values into the model the model predictions is then inversed to reconstruct the original data(y pred)
+# I am importing a test file and scaling it then passing the scaled values into the model the model predictions is then inversed to reconstruct the original data(y pred)
 # Overall mse is calculated and each signal mse is calculated(MSE vs MAE?)
 # All datapointws are being passed but can also only pass Class =1 Anomalies
 
-
-raw_data=pd.read_excel('Tci amp 20 Fault 1.xlsx',engine='openpyxl')
-# raw_data=raw_data.query('Class==1')
+raw_data=pd.read_excel(r'Fault 1_Bias/Tci.xlsx',engine='openpyxl')
+df_class=raw_data
 raw_data=raw_data.iloc[:,2:9]
 
 scaler = StandardScaler()
@@ -127,61 +70,83 @@ scaled_data = scaler.fit_transform(raw_data)
 original=scaler.inverse_transform(scaled_data)
 predictions = autoencoder.predict(scaled_data)
 Predicted_original=scaler.inverse_transform(predictions)
-Overall_MSE = keras.losses.mean_squared_error(original, predictions)
+Overall_MSE = keras.losses.mean_squared_logarithmic_error(original, predictions)
 Overall_MSE=pd.DataFrame(Overall_MSE,columns=['Overall Error'])
-
-
 ypred=pd.DataFrame(Predicted_original)
-ypred.to_excel('ypred.xlsx')
 
-# y=pd.DataFrame(original)
-# mse_df = pd.DataFrame(index=y.index)
+df1=pd.DataFrame(original)
+df2=pd.DataFrame(Predicted_original)
 
-# # Calculate MSE for each column
-# for column in y.columns:
-#     mse_df[column] = [(y_i - ypred_i) ** 2 for y_i, ypred_i in zip(y[column], ypred[column])]
-# Results_df=pd.concat([mse_df,Overall_MSE],axis=1)
-# # dfx=df[['Ci','Ti','Tci','Tsp','Qc','Tc','T']]
+# Calculate the MSLE for each column and store it in a new DataFrame called Error_By_Sensor
+Error_By_Sensor = pd.DataFrame()
+for col in df1.columns:
+    point1 = df1[col].values.reshape(-1, 1)
+    point2 = df2[col].values.reshape(-1, 1)
 
-# # Extract sensor error and plot distribution
-
-# sensor_errors=Results_df.drop(Overall_MSE,axis=1)
-# Overall_MSE=Results_df['Overall Error']
-
-# for col in sensor_errors.columns:
-#     plt.hist(sensor_errors[col],label=col,alpha=0.7)
-# # plt.hist(Overall_MSE,label='Overall Error',alpha=0.7)
-# plt.xlabel('Reconstruction Error(MSE)')
-# plt.ylabel('Frequency')
-# plt.title('Distribution of Reconstruction errror')
-# plt.legend()
-# # plt.show()
+    # Calculate the MSLE between Y and Ypred for each column
+    # tf.keras.losses.mean_squared_logarithmic_error
+    # tf.keras.losses.mean_squared_error
+    # tf.keras.losses.mean_absolute_error
 
 
-# fig,axis=plt.subplots(nrows=len(sensor_errors.columns),figsize=(10,8))
-# for i, (col, ax) in enumerate(zip(sensor_errors.columns, axis[:-1])):
-#     ax.hist(sensor_errors[col],label=col,alpha=0.7)
-#     ax.set_xlabel('Reconsturction error(MSE)')
-#     ax.set_ylabel('Frequency')
-#     ax.set_title(f'Reconstruction error for {col}')
+    msle = keras.losses.mean_squared_error(point1, point2).numpy()
+    Error_By_Sensor[col] = msle
+Error_By_Sensor.columns=['Ci', 'Ti', 'T', 'Qc', 'Tci', 'Tc', 'C']
 
-# fig.tight_layout()
-# # plt.show()
+outliers = Utils.detect_outliers_Mahalanobis(Overall_MSE)
+Error_By_Sensor['Outlier'] = outliers
+Error_By_Sensor['msle'] = df.iloc[:,1:7].mean(axis=1)
+Error_By_Sensor['Class']=Error_By_Sensor['Outlier'].astype('int')
 
 
-# # Define a function to calculate statistics
-# def calculate_stats(series):
-#     range = series.max() - series.min()
-#     iqr = series.quantile(0.75) - series.quantile(0.25)
-#     sd = series.std()
-#     cv = series.std() / series.mean()
-#     return range, iqr, sd, cv
 
-# # Calculate and print statistics for each sensor
-# for col in sensor_errors.columns:
-#     range, iqr, sd, cv = calculate_stats(sensor_errors[col])
-#     print(f"\nSensor {col}:")
-#     print(f"  Range: {range:.4f}")
-#     print(f"  IQR: {iqr:.4f}")
-#     print(f"  SD: {sd:.4f}")
-#     print(f"  CV: {cv:.4f}")
+# fig,(ax1,ax2)=plt.subplots(2,1,figsize=(10,8))
+
+
+# ax1.plot(Error_By_Sensor.index,Error_By_Sensor.Class,label='Anomalies')
+# ax1.plot(df_class.index,df_class.Class,label='Class')
+# ax1.legend()
+
+# ax2.plot(Error_By_Sensor.index,Error_By_Sensor.msle,label='Reconstruction Error')
+# ax2.legend()
+# plt.show()
+
+# Error_By_Sensor=Error_By_Sensor[Error_By_Sensor.Class==1]
+# # Plotting spread/distribution for each error by sensor
+# Error_By_Sensor.boxplot(figsize=(10, 6))
+# plt.title('Spread/Distribution of Errors for Each Sensor')
+# plt.ylabel('MSE')
+# plt.xticks(rotation=45)
+# plt.show()
+
+# -------------------
+# Anomaly Diagnosis
+# # -------------------
+# autoencoders = ['AE_feature0.h5','AE_feature1.h5','AE_feature2.h5','AE_feature3.h5','AE_feature4.h5','AE_feature5.h5','AE_feature6.h5']
+
+# # Load test data
+# raw_data = pd.read_excel('Ci_SensorBias_.xlsx', engine='openpyxl')
+# test_data = raw_data.iloc[:, 2:9]
+
+# # Scale test data
+# scaled_test_data = scaler.transform(test_data)
+# scaled_test_data=pd.DataFrame(scaled_test_data)
+# # Predict and calculate reconstruction error for each column
+# reconstruction_errors = []
+# predicted_originals = []
+
+# predictions=pd.DataFrame()
+# for i, autoencoder in enumerate(autoencoders):
+#     model = tf.keras.models.load_model(autoencoder)
+#     predicted_data = model.predict(scaled_test_data)
+#     predicted_data = pd.DataFrame(predicted_data)
+#     predictions = pd.concat([predictions, predicted_data], axis=1)
+
+
+# predictions=pd.DataFrame(scaler.inverse_transform(predictions))
+# print(predictions)
+
+spread_df = Utils.Spread(Error_By_Sensor.drop(columns=['Outlier', 'msle', 'Class']))
+widest_spread = pd.DataFrame(Utils.widest_spread_sensor(spread_df),columns=['Diagnosis'])
+results=pd.concat([spread_df,widest_spread],axis=1)
+print(results)

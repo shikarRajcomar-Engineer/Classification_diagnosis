@@ -293,3 +293,37 @@ def detect_outliers_Mahalanobis(data):
     # Identify outliers based on the threshold
     outliers = dist > threshold_percentile
     return outliers
+
+
+
+# Spread of data
+def Spread(df1):
+    metrics = ['Range', 'IQR', 'MAD', 'Variance', 'CV', 'Skewness', 'Kurtosis', '10th Percentile', '25th Percentile', '50th Percentile', '75th Percentile', '90th Percentile']
+    spread_metrics = pd.DataFrame(index=metrics, columns=df1.columns)
+    for col in df1.columns:
+        data_range = df1[col].max() - df1[col].min()
+
+        Q3 = df1[col].quantile(0.75)
+        Q1 = df1[col].quantile(0.25)
+        IQR = Q3 - Q1
+
+        MAD = df1[col].mad()
+
+        variance = df1[col].var()
+
+        CV = df1[col].std() / df1[col].mean()
+
+        skewness = df1[col].skew()
+
+        kurtosis = df1[col].kurtosis()
+
+        percentiles = df1[col].quantile([0.1, 0.25, 0.5, 0.75, 0.9])
+
+        spread_metrics[col] = [data_range, IQR, MAD, variance, CV, skewness, kurtosis, percentiles.loc[0.1], percentiles.loc[0.25], percentiles.loc[0.5], percentiles.loc[0.75], percentiles.loc[0.9]]
+
+    return spread_metrics
+
+
+def widest_spread_sensor(spread_df):
+    max_spread_sensor = spread_df.idxmax(axis=1)
+    return max_spread_sensor

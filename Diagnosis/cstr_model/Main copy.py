@@ -45,6 +45,10 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'   #To enable them in non-MKL-DNN operat
 warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 
 
+autoencoders = ['AE_feature0.h5','AE_feature.h5','AE_feature1.h5','AE_feature2.h5','AE_feature3.h5','AE_feature4.h5','AE_feature5.h5','AE_feature6.h5']
+
+
+
 
 df = pd.read_excel('Model data.xlsx',engine='openpyxl')
 x = df[df.columns[2:9]].to_numpy()
@@ -65,13 +69,8 @@ folder_path=os.getcwd()+'/Fault 1_Bias'
 for filename in os.listdir(folder_path):
     filepath=os.path.join(folder_path,filename)
     if os.path.isfile(filepath) and filename.endswith('.xlsx'):
-        print(filename)
-
-
-
 
         raw_data = pd.read_excel(filepath, engine='openpyxl')
-
         raw_data=raw_data[raw_data.Class==1]
         raw_data=raw_data.iloc[:,1:8]
 
@@ -96,19 +95,10 @@ for filename in os.listdir(folder_path):
             Error_By_Sensor[col] = msle
         Error_By_Sensor.columns=['Ci', 'Ti', 'T', 'Qc', 'Tci', 'Tc', 'C']
 
-
-
-
-
-
-
-
         outliers = Utils.detect_outliers_Mahalanobis(Overall_MSE)
         Error_By_Sensor['Outlier'] = outliers
         Error_By_Sensor['msle'] = df.iloc[:,1:7].mean(axis=1)
         Error_By_Sensor['Class']=Error_By_Sensor['Outlier'].astype('int')
-
-
 
         spread_df = Utils.Spread(Error_By_Sensor.drop(columns=['Outlier', 'msle', 'Class']))
         widest_spread = pd.DataFrame(Utils.widest_spread_sensor(spread_df),columns=['Diagnosis'])
@@ -116,7 +106,4 @@ for filename in os.listdir(folder_path):
         results['filename']=filename
         all_results=all_results.append(results)
 
-
-
 all_results.to_excel('all_results.xlsx')
-print(all_results)

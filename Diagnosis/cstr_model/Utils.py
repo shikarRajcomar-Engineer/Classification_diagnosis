@@ -121,7 +121,7 @@ def Model_development(n_features,train_data, test_data):
 
     best_model = keras.models.clone_model(autoencoder)
     best_model.set_weights(autoencoder.get_weights())
-    best_model.save('AE_feature.h5')
+    best_model.save('Test.h5')
 
     return history,autoencoder
 

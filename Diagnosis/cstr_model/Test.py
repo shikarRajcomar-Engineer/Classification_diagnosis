@@ -32,6 +32,10 @@ df=df.rename(columns={'SystemResponse_ 4':'Ci','SystemResponse_ 5':'Ti','SystemR
 df=df[['Ci','Ti','Tci','Tsp','Qc','Tc','T','Flag']]
 dfx=df[['Ci','Ti','Tci','Tsp','Qc','Tc','T']]
 
+
+
+
+
 master=pd.read_excel('testmaster.xlsx')
 X=master.drop(columns=['Flag'],axis=1)
 y=master[['Flag']]

@@ -43,6 +43,8 @@ warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 
 
 df = pd.read_excel(os.getcwd()+'/Fault 1_Bias/C_SensorBias.xlsx',engine='openpyxl')
+df['Ci']=df.Ci.apply(np.log)*100
+df['C']=df.C.apply(np.log)*100
 x = df[df.columns[2:9]].to_numpy()
 scaler = preprocessing.MinMaxScaler()
 scaled_data = scaler.fit_transform(x)
@@ -59,6 +61,8 @@ autoencoders = ['AE_model_feature0.h5','AE_model_feature1.h5','AE_model_feature2
 
 folder_path=os.getcwd()+'/Fault 1_Bias/C_SensorBias.xlsx'
 raw_data = pd.read_excel(folder_path, engine='openpyxl')
+raw_data['Ci']=raw_data.Ci.apply(np.log)*100
+raw_data['C']=raw_data.C.apply(np.log)*100
 test_data = raw_data.iloc[:, 2:9]
 
 
@@ -150,12 +154,12 @@ plt.ylabel('MSE')
 plt.xticks(rotation=45)
 plt.show()
 
-# # Normalize the error values across sensors
-normalized_errors = (Error_By_Sensor - Error_By_Sensor.mean()) / Error_By_Sensor.std()
+# # # Normalize the error values across sensors
+# normalized_errors = (Error_By_Sensor - Error_By_Sensor.mean()) / Error_By_Sensor.std()
 
-# Plotting spread/distribution for each error by sensor
-normalized_errors.boxplot(figsize=(10, 6))
-plt.title('Spread/Distribution of Normalized Errors for Each Sensor')
-plt.ylabel('Normalized MSE')
-plt.xticks(rotation=45)
-plt.show()
+# # Plotting spread/distribution for each error by sensor
+# normalized_errors.boxplot(figsize=(10, 6))
+# plt.title('Spread/Distribution of Normalized Errors for Each Sensor')
+# plt.ylabel('Normalized MSE')
+# plt.xticks(rotation=45)
+# plt.show()

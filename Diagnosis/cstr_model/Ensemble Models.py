@@ -76,6 +76,8 @@ def Model_development(n_features, train_data, test_data, model_save_path):
 df = pd.read_excel('Model Data.xlsx')
 x = df[df.columns[2:9]].to_numpy()
 df=pd.DataFrame(x,columns=['Ci', 'Ti', 'T', 'Qc', 'Tci', 'Tc', 'C'])
+df['Ci']=df.Ci.apply(np.log)*100
+df['C']=df.C.apply(np.log)*100
 
 recon=pd.read_excel('Recon.xlsx')
 

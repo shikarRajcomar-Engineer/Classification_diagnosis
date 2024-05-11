@@ -60,6 +60,100 @@ warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 #     return masterfile
 
 
+
+# ----------------------------------------------------------------------------------------------------------
+# 1.Model Architecture-Attention Mechanism
+# ----------------------------------------------------------------------------------------------------------
+
+def Model_development(n_features,train_data, test_data):
+    encoder = keras.Sequential(name='encoder')
+    encoder.add(layer=keras.layers.Dense(units=20, activation=keras.activations.relu, input_shape=[n_features]))
+    encoder.add(keras.layers.Dropout(0.1))
+    encoder.add(layer=keras.layers.Dense(units=10, activation=keras.activations.relu))
+    encoder.add(layer=keras.layers.Dense(units=5, activation=keras.activations.relu))
+
+    decoder = keras.Sequential(name='decoder')
+    decoder.add(layer=keras.layers.Dense(units=10, activation=keras.activations.relu, input_shape=[5]))
+    decoder.add(layer=keras.layers.Dense(units=20, activation=keras.activations.relu))
+    decoder.add(keras.layers.Dropout(0.1))
+    decoder.add(layer=keras.layers.Dense(units=n_features, activation=keras.activations.sigmoid))
+
+    autoencoder = keras.Sequential([encoder, decoder])
+    loss = keras.losses.Huber()
+    learning_rate = 0.001
+    optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
+    es = EarlyStopping(monitor='val_loss', min_delta=0.00001, patience=20, restore_best_weights=True)
+
+    autoencoder.compile(
+        loss=keras.losses.MSE,
+        optimizer=keras.optimizers.Adam(),
+        metrics=[keras.metrics.mean_squared_error,'accuracy'])
+
+    history = autoencoder.fit(
+        x=train_data, y=train_data,
+        batch_size=32,
+        epochs=50,
+        verbose=0,
+        validation_data=(test_data, test_data),
+        callbacks=[es])
+
+    plt.figure(figsize=(12, 4))
+    # Plot training & validation accuracy values
+    plt.subplot(1, 2, 1)
+    plt.plot(history.history['accuracy'])
+    plt.plot(history.history['val_accuracy'])
+    plt.title('Model Accuracy')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.legend(['Train', 'Validation'], loc='upper left')
+
+    # Plot training & validation loss values
+    plt.subplot(1, 2, 2)
+    plt.plot(history.history['loss'])
+    plt.plot(history.history['val_loss'])
+    plt.title('Model Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend(['Train', 'Validation'], loc='upper left')
+
+    plt.tight_layout()
+    plt.show()
+
+    best_model = keras.models.clone_model(autoencoder)
+    best_model.set_weights(autoencoder.get_weights())
+    best_model.save('Test.h5')
+
+    def attention(encoded_main, encoded_individual):
+        # Assuming encoded_individual is a list containing encoded representations from individual AEs
+        # Calculate attention scores (e.g., dot product)
+        attention_scores = tf.keras.backend.dot(encoded_main, tf.transpose(encoded_individual))
+        # Apply softmax activation for normalized weights
+        attention_weights = tf.nn.softmax(attention_scores, axis=-1)
+        return attention_weights
+            
+    # Attention layer to combine encoded representations with weights
+    attention_layer = keras.layers.Lambda(attention, output_shape=(len(encoded_individual),))  # Adjust for number of individual AEs
+    encoded = encoder(train_data)
+    # Assuming encoded_individual is available from your individual AEs (replace with your logic)
+    attention_weights = attention_layer([encoded, encoded_individual])
+
+    # Weighted concatenation before feeding to decoder
+    concatenated = tf.concat([encoded, attention_weights * encoded_individual], axis=-1)
+
+    # Rest of your decoder layers...
+    decoder.add(keras.layers.Dense(units=n_features, activation=keras.activations.sigmoid))  # Output layer
+
+    # ... rest of your model compilation and training logic
+
+    return history, autoencoder
+
+
+
+
+
+
+
+
 # ----------------------------------------------------------------------------------------------------------
 # 1.Model Architecture
 # ----------------------------------------------------------------------------------------------------------

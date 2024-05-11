@@ -50,7 +50,14 @@ warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 
 # Preparing model data-only required if we are retraining a new model
 df = pd.read_excel('Model data.xlsx',engine='openpyxl')
+df['Ci']=df.Ci.apply(np.log)*100
+df['C']=df.C.apply(np.log)*100
 x = df[df.columns[2:9]].to_numpy()
+
+
+
+
+
 scaler = preprocessing.MinMaxScaler()
 scaled_data = scaler.fit_transform(x)
 train_data, test_data = train_test_split(scaled_data, test_size=0.3)

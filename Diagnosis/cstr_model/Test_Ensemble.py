@@ -38,28 +38,26 @@ from sklearn.metrics import mean_squared_error
 # Hide Warnings
 import os
 import warnings
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'   #To enable them in non-MKL-DNN operations, rebuild TensorFlow with the appropriate compiler flags.
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  
 warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 
-
-df = pd.read_excel(os.getcwd()+'/Fault 1_Bias/C_SensorBias.xlsx',engine='openpyxl')
-df['Ci']=df.Ci.apply(np.log)*100
-df['C']=df.C.apply(np.log)*100
+# Preprocess data and pass data through to mainAE to get reconstruction data which is then passed to the individual AE
+df = pd.read_excel(os.getcwd()+'/Fault 1_Bias/Tsp 1.xlsx',engine='openpyxl')
+df['Ci']=df.Ci.apply(np.log)
+df['C']=df.C.apply(np.log)
 x = df[df.columns[2:9]].to_numpy()
 scaler = preprocessing.MinMaxScaler()
 scaled_data = scaler.fit_transform(x)
 model=load_model('Test.h5')
-recon=model.predict(scaled_data)
+recon=model.predict(scaled_data) 
 recon=pd.DataFrame(recon)
 
 
 
-
-
-
+# Load individual AE models  and import fault dataset example :C_SensorBias.xlsx
 autoencoders = ['AE_model_feature0.h5','AE_model_feature1.h5','AE_model_feature2.h5','AE_model_feature3.h5','AE_model_feature4.h5','AE_model_feature5.h5','AE_model_feature6.h5']
 
-folder_path=os.getcwd()+'/Fault 1_Bias/C_SensorBias.xlsx'
+folder_path=os.getcwd()+'/Fault 1_Bias/Tsp 1.xlsx'
 raw_data = pd.read_excel(folder_path, engine='openpyxl')
 raw_data['Ci']=raw_data.Ci.apply(np.log)*100
 raw_data['C']=raw_data.C.apply(np.log)*100
@@ -78,6 +76,7 @@ def create_features(sensor_data):
 
 
 dfs = []
+# take the fault data pass it thorugh the function to create more features ,in this case its the std and rolling mean then append the reconstruction error from the main AE for the respective sensor to the DFS
 
 for idx, col in enumerate(test_data.columns):
     sensor_data = test_data[col]
@@ -116,6 +115,8 @@ scaler=MinMaxScaler()
 # Predict and calculate reconstruction error for each column
 Error_By_Sensor = pd.DataFrame()
 
+
+# Even though im passing the recon error from the main model which is already scaled,do i need to rescale it again ?
 for i, autoencoder in enumerate(autoencoders):
     scaler = MinMaxScaler()  # Initialize the scaler inside the loop
     scaled_test_data = scaler.fit_transform(dfs[i])
@@ -123,8 +124,15 @@ for i, autoencoder in enumerate(autoencoders):
     predicted_data = model.predict(dfs[i])
 
     # Inverse scaling
-    predicted_data = scaler.inverse_transform(predicted_data)
-    scaled_test_data = scaler.inverse_transform(scaled_test_data)
+    # predicted_data = scaler.inverse_transform(predicted_data)
+    # scaled_test_data = scaler.inverse_transform(scaled_test_data)
+
+    # No inverse scaling
+    predicted_data = (predicted_data)
+    scaled_test_data = (scaled_test_data)
+    checkpred=pd.DataFrame(predicted_data)
+    checkpred.to_excel(f'tt{i}.xlsx')
+
 
     # Calculate MSE for each observation and average across features
     mse_per_observation = np.mean((predicted_data - scaled_test_data)**2, axis=1)
@@ -140,10 +148,10 @@ dff=pd.concat([Error_By_Sensor,raw_data.Class],axis=1)
 dff=dff[dff.Class==1]
 dff=dff[['Ci', 'Ti', 'T', 'Qc',  'Tci', 'Tc', 'C']]
 
-# dff.boxplot(figsize=(10, 6))
-# plt.title('Boxplot for Each Column')
-# plt.ylabel('Values')
-# plt.xticks(rotation=45)
+dff.boxplot(figsize=(10, 6))
+plt.title('Boxplot for Each Column')
+plt.ylabel('Values')
+plt.xticks(rotation=45)
 # plt.show()
 
 
@@ -155,11 +163,32 @@ plt.xticks(rotation=45)
 plt.show()
 
 # # # Normalize the error values across sensors
-# normalized_errors = (Error_By_Sensor - Error_By_Sensor.mean()) / Error_By_Sensor.std()
+normalized_errors = (Error_By_Sensor - Error_By_Sensor.mean()) / Error_By_Sensor.std()
+normalized_errors = Error_By_Sensor
+# Plotting spread/distribution for each error by sensor
+normalized_errors.boxplot(figsize=(10, 6))
+plt.title('Spread/Distribution of Normalized Errors for Each Sensor')
+plt.ylabel('Normalized MSE')
+plt.xticks(rotation=45)
+plt.show()
 
-# # Plotting spread/distribution for each error by sensor
-# normalized_errors.boxplot(figsize=(10, 6))
-# plt.title('Spread/Distribution of Normalized Errors for Each Sensor')
-# plt.ylabel('Normalized MSE')
-# plt.xticks(rotation=45)
-# plt.show()
+
+
+
+# Calculate the range of normalized errors
+error_ranges = normalized_errors.max() - normalized_errors.min()
+
+# Create a DataFrame with sensor names and corresponding values
+error_ranges_df = pd.DataFrame(error_ranges, columns=['Range of Normalized Errors'])
+error_ranges_df.reset_index(inplace=True)
+error_ranges_df.columns = ['Sensor', 'Range of Normalized Errors']
+
+# Print the DataFrame
+print("Range of normalized errors for each sensor:")
+print(error_ranges_df)
+# error_ranges_df.to_excel('error_ranges_df.xlsx')
+# # Identify the sensor with the widest spread
+# widest_spread_sensor = error_ranges.idxmax()
+# print(f"The sensor with the widest spread of normalized errors is: {widest_spread_sensor}")
+
+

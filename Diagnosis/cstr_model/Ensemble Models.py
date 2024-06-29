@@ -23,15 +23,15 @@ def Model_development(n_features, train_data, test_data, model_save_path):
     input_data = keras.Input(shape=(n_features,))  
 
     encoded = keras.layers.Dense(units=64, activation='relu')(input_data)
-    encoded = keras.layers.Dropout(0.2)(encoded)
+    # encoded = keras.layers.Dropout(0.2)(encoded)
     encoded = keras.layers.Dense(units=32, activation='relu')(encoded)
-    encoded = keras.layers.Dropout(0.6)(encoded)
+    # encoded = keras.layers.Dropout(0.6)(encoded)
     encoded = keras.layers.Dense(units=16, activation='relu')(encoded)
 
     decoded = keras.layers.Dense(units=32, activation='relu')(encoded)
-    decoded = keras.layers.Dropout(0.2)(decoded)
+    # decoded = keras.layers.Dropout(0.2)(decoded)
     decoded = keras.layers.Dense(units=64, activation='relu')(decoded)
-    decoded = keras.layers.Dropout(0.2)(decoded)
+    # decoded = keras.layers.Dropout(0.2)(decoded)
     decoded = keras.layers.Dense(units=n_features, activation='linear')(decoded)
 
     autoencoder = keras.Model(input_data, decoded)

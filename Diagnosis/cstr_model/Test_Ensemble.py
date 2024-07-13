@@ -42,9 +42,9 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 
 # Preprocess data and pass data through to mainAE to get reconstruction data which is then passed to the individual AE
-df = pd.read_excel(os.getcwd()+'/Fault 1_Bias/Tsp 1.xlsx',engine='openpyxl')
-df['Ci']=df.Ci.apply(np.log)
-df['C']=df.C.apply(np.log)
+df = pd.read_excel(os.getcwd()+'/Fault 1_Bias/Ci_SensorBias.xlsx',engine='openpyxl')
+df['Ci']=df.Ci.apply(np.log)*100
+df['C']=df.C.apply(np.log)*100
 x = df[df.columns[2:9]].to_numpy()
 scaler = preprocessing.MinMaxScaler()
 scaled_data = scaler.fit_transform(x)
@@ -57,7 +57,7 @@ recon=pd.DataFrame(recon)
 # Load individual AE models  and import fault dataset example :C_SensorBias.xlsx
 autoencoders = ['AE_model_feature0.h5','AE_model_feature1.h5','AE_model_feature2.h5','AE_model_feature3.h5','AE_model_feature4.h5','AE_model_feature5.h5','AE_model_feature6.h5']
 
-folder_path=os.getcwd()+'/Fault 1_Bias/Tsp 1.xlsx'
+folder_path=os.getcwd()+'/Fault 1_Bias/Ci_SensorBias.xlsx'
 raw_data = pd.read_excel(folder_path, engine='openpyxl')
 raw_data['Ci']=raw_data.Ci.apply(np.log)*100
 raw_data['C']=raw_data.C.apply(np.log)*100
@@ -124,12 +124,12 @@ for i, autoencoder in enumerate(autoencoders):
     predicted_data = model.predict(dfs[i])
 
     # Inverse scaling
-    # predicted_data = scaler.inverse_transform(predicted_data)
-    # scaled_test_data = scaler.inverse_transform(scaled_test_data)
+    predicted_data = scaler.inverse_transform(predicted_data)
+    scaled_test_data = scaler.inverse_transform(scaled_test_data)
 
     # No inverse scaling
-    predicted_data = (predicted_data)
-    scaled_test_data = (scaled_test_data)
+    # predicted_data = (predicted_data)
+    # scaled_test_data = (scaled_test_data)
     checkpred=pd.DataFrame(predicted_data)
     checkpred.to_excel(f'tt{i}.xlsx')
 

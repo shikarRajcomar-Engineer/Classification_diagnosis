@@ -36,15 +36,6 @@ from sklearn.metrics import mean_squared_error
 import Utils
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error
-import numpy as np
-import pandas as pd
-import tensorflow as tf
-from tensorflow.keras.models import Sequential, Model
-from tensorflow.keras.layers import Dense, Dropout, Input
-from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MinMaxScaler
-import matplotlib.pyplot as plt
 
 from sklearn.metrics import mean_squared_error
 # Hide Warnings
@@ -54,79 +45,13 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'   #To enable them in non-MKL-DNN operat
 warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 
 
-def Model_development(n_features, train_data, test_data):
-    # Define the encoder
-    encoder = tf.keras.Sequential(name='encoder')
-    encoder.add(Dense(units=20, activation='relu', input_shape=[n_features]))
-    encoder.add(Dropout(0.1))
-    encoder.add(Dense(units=10, activation='relu'))
-    encoder.add(Dense(units=5, activation='relu'))
 
-    # Define the decoder
-    decoder = tf.keras.Sequential(name='decoder')
-    decoder.add(Dense(units=10, activation='relu', input_shape=[5]))
-    decoder.add(Dense(units=20, activation='relu'))
-    decoder.add(Dropout(0.1))
-    decoder.add(Dense(units=n_features, activation='sigmoid'))
-
-    # Combine encoder and decoder into an autoencoder
-    autoencoder = tf.keras.Sequential([encoder, decoder])
-
-    # Compile the model
-    autoencoder.compile(
-        loss='mse',
-        optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-        metrics=['accuracy']
-    )
-
-    # Define callbacks
-    checkpoint = ModelCheckpoint('autoencoder_best.h5', save_best_only=True, monitor='val_loss', mode='min')
-    early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
-    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5, min_lr=0.0001)
-
-    # Train the model
-    history = autoencoder.fit(
-        x=train_data, y=train_data,
-        batch_size=32,
-        epochs=50,
-        verbose=1,
-        validation_data=(test_data, test_data),
-        callbacks=[checkpoint, early_stopping, reduce_lr]
-    )
-
-    # Plotting training history
-    plt.figure(figsize=(12, 4))
-    
-    plt.subplot(1, 2, 1)
-    plt.plot(history.history['accuracy'])
-    plt.plot(history.history['val_accuracy'])
-    plt.title('Model Accuracy')
-    plt.xlabel('Epoch')
-    plt.ylabel('Accuracy')
-    plt.legend(['Train', 'Validation'], loc='upper left')
-
-    plt.subplot(1, 2, 2)
-    plt.plot(history.history['loss'])
-    plt.plot(history.history['val_loss'])
-    plt.title('Model Loss')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.legend(['Train', 'Validation'], loc='upper left')
-
-    plt.tight_layout()
-    plt.show()
-
-    # Save the best model
-    best_model = tf.keras.models.load_model('autoencoder_best.h5')
-    best_model.save('Ci_logtransform.h5')
-
-    return history, autoencoder
 
 
 # Preparing model data-only required if we are retraining a new model
 df = pd.read_excel('Model data.xlsx',engine='openpyxl')
-df['Ci']=df.Ci.apply(np.log)
-df['C']=df.C.apply(np.log)
+df['Ci']=df.Ci.apply(np.log)*100
+df['C']=df.C.apply(np.log)*100
 x = df[df.columns[2:9]].to_numpy()
 
 
@@ -137,8 +62,8 @@ scaler = preprocessing.MinMaxScaler()
 scaled_data = scaler.fit_transform(x)
 train_data, test_data = train_test_split(scaled_data, test_size=0.3)
 n_features = train_data.shape[1]
-Model_development(n_features,train_data, test_data)
-autoencoder=load_model('Ci_logtransform.h5')
+Utils.Model_development(n_features,train_data, test_data)
+autoencoder=load_model('Test.h5')
 
 
 
@@ -150,7 +75,7 @@ test_data = raw_data.iloc[:, 2:9]
 scaled_test_data = scaler.transform(test_data)
 scaled_test_data=pd.DataFrame(scaled_test_data)
 # Predict and calculate reconstruction error for each column
-
+# Predict and calculate reconstruction error for each column
 reconstruction_errors = []
 predicted_originals = []
 
@@ -189,7 +114,7 @@ for col in df1.columns:
 
 Error_By_Sensor.columns=['Ci', 'Ti', 'T', 'Qc', 'Tci', 'Tc', 'C']
 
-Error_By_Sensor.to_excel('Ci_logtransform.xlsx')
+Error_By_Sensor.to_excel('Recon.xlsx')
 
 
 
